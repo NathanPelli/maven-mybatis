@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.accuvally.wechatsvc.mapper.WechatAcountMapper">
+
+    <resultMap id="wechatAccountMap" type="wechatAccount" >
+        <result property="wechatId" column="WECHAT_ID" />
+        <result property="accuvallyAccountId" column="ACCUVALLY_ACCOUNT_ID" />
+        <result property="screenName" column="SCREEN_NAME" />
+        <result property="portrait" column="PORTRAIT" />
+        <result property="createDate" column="CREATE_TIME" />
+        <result property="updateDate" column="UPDATE_TIME" />
+    </resultMap>
+
+    <sql id="table_columns">
+        WECHAT_ID,
+        ACCUVALLY_ACCOUNT_ID,
+        SCREEN_NAME,
+        PORTRAIT,
+        CREATE_TIME,
+        UPDATE_TIME
+    </sql>
+
+    <sql id="entity_properties">
+        #{wechatId},
+        #{accuvallyAccountId},
+        #{screenName},
+        #{portrait},
+        #{createDate},
+        #{updateDate}
+    </sql>
+
+    <insert id="insert" parameterType="wechatAccount">
+        INSERT INTO WECHAT_ACCOUNT(<include refid="table_columns" />)
+        VALUES
+        (<include refid="entity_properties" />)
+    </insert>
+
+    <select id="getByWechatId" parameterType="String" resultMap="wechatAccountMap">
+        SELECT * FROM WECHAT_ACCOUNT WHERE WECHAT_ID = #{0} LIMIT 0,1
+    </select>
+
+    <select id="get"  resultMap="wechatAccountMap">
+        SELECT * FROM WECHAT_ACCOUNT WHERE WECHAT_ID = #{0} AND ACCUVALLY_ACCOUNT_ID = #{1}
+    </select>
+
+</mapper>

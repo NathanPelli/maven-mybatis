@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.accuvally.wechatsvc.mapper.AccountUpvoiteMapper">
+
+    <resultMap id="accountUpvoiteMap" type="accountUpvoite" >
+        <result property="id" column="ID" />
+        <result property="topicId" column="TOPIC_ID" />
+        <result property="eventId" column="EVENT_ID" />
+        <result property="targetId" column="TARGET_ID" />
+        <result property="exectorId" column="EXECUTOR_ID" />
+        <result property="exectorScreenName" column="EXECUTOR_SCREEN_NAME" />
+        <result property="exectorPortrait" column="EXECUTOR_PORTRAIT" />
+        <result property="createDate" column="CREATE_TIME" />
+        <result property="updateDate" column="UPDATE_TIME" />
+    </resultMap>
+
+    <resultMap id="accountDTOMap" type="accountDTO" >
+        <result property="exectorId" column="EXECUTOR_ID" />
+        <result property="exectorScreenName" column="EXECUTOR_SCREEN_NAME" />
+        <result property="exectorPortrait" column="EXECUTOR_PORTRAIT" />
+        <result property="createDate" column="CREATE_TIME" />
+    </resultMap>
+
+    <resultMap id="accountRankDTOMap" type="accountRankDTO" >
+        <result property="wechatId" column="TARGET_ID" />
+        <result property="screenName" column="SCREEN_NAME" />
+        <result property="portrait" column="PORTRAIT" />
+        <result property="eventId" column="EVENT_ID" />
+        <result property="topicId" column="TOPIC_ID" />
+        <result property="upvoteTimes" column="UPVOITE_TIMES" />
+        <result property="rank" column="RANK" />
+    </resultMap>
+
+    <sql id="table_columns">
+        ID,
+        TOPIC_ID,
+        EVENT_ID,
+        TARGET_ID,
+        EXECUTOR_ID,
+        EXECUTOR_SCREEN_NAME,
+        EXECUTOR_PORTRAIT,
+        CREATE_TIME,
+        UPDATE_TIME
+    </sql>
+
+    <sql id="entity_properties">
+        #{id},
+        #{topicId},
+        #{eventId},
+        #{targetId},
+        #{exectorId},
+        #{exectorScreenName},
+        #{exectorPortrait},
+        #{createDate},
+        #{updateDate}
+    </sql>
+
+    <select id="getUpvoitedAccountListSize" resultType="integer">
+        SELECT COUNT(*) FROM ACCOUNT_UPVOITE
+        WHERE TARGET_ID = #{0} AND EVENT_ID = #{1}
+    </select>
+
+    <select id="queryUpvoitedAccountListByPage" resultMap="accountDTOMap">
+        SELECT EXECUTOR_ID,EXECUTOR_SCREEN_NAME,EXECUTOR_PORTRAIT,CREATE_TIME FROM ACCOUNT_UPVOITE
+        WHERE TARGET_ID = #{0} AND EVENT_ID = #{1} ORDER BY CREATE_TIME DESC LIMIT #{2},#{3}
+    </select>
+
+    <select id="queryByEventAndAccounts" resultMap="accountUpvoiteMap">
+        SELECT * FROM ACCOUNT_UPVOITE WHERE EVENT_ID = #{0} AND TARGET_ID = #{1} AND EXECUTOR_ID = #{2}
+    </select>
+
+    <select id="getUpvoitedRankListSize" resultType="int">
+      SELECT count(*) FROM
+          (SELECT t.TARGET_ID TARGET_ID,a.SCREEN_NAME SCREEN_NAME,a.PORTRAIT PORTRAIT,t.EVENT_ID EVENT_ID,t.TOPIC_ID TOPIC_ID,CONCAT(t.count_eventId) UPVOITE_TIMES,@row_num := (@rowNum:=@rowNum+1) AS RANK
+		      FROM
+			    (SELECT COUNT(EVENT_ID) count_eventId, TARGET_ID,EVENT_ID,TOPIC_ID FROM account_upvoite WHERE EVENT_ID = #{0} GROUP BY TARGET_ID,TOPIC_ID ORDER BY count_eventId DESC) t,
+			    (SELECT (@rowNum :=0)) rowIndex,
+			    WECHAT_ACCOUNT a
+	      WHERE t.TARGET_ID = a.WECHAT_ID
+          ORDER BY RANK
+          ) o
+    </select>
+
+    <select id="getRankByEvent" resultMap="accountRankDTOMap">
+        SELECT t.TARGET_ID TARGET_ID,a.SCREEN_NAME SCREEN_NAME,a.PORTRAIT PORTRAIT,t.EVENT_ID EVENT_ID,t.TOPIC_ID TOPIC_ID,CONCAT(t.count_eventId) UPVOITE_TIMES,@row_num := (@rowNum:=@rowNum+1) AS RANK
+        FROM
+	      (SELECT COUNT(EVENT_ID) count_eventId, TARGET_ID,EVENT_ID,TOPIC_ID FROM account_upvoite WHERE EVENT_ID = #{0} GROUP BY TARGET_ID,TOPIC_ID ORDER BY count_eventId DESC) t,
+          (SELECT (@rowNum :=0)) rowIndex,
+	       WECHAT_ACCOUNT a
+        WHERE t.TARGET_ID = a.WECHAT_ID
+        ORDER BY RANK  LIMIT #{1},#{2};
+    </select>
+
+    <select id="getRankByAccount" resultType="integer">
+        SELECT t1.RANK FROM(
+        SELECT @row_num := IF(@prev_value=t.TOPIC_ID,@row_num+1,1) AS RANK,@prev_value := t.TOPIC_ID,t.TARGET_ID
+        FROM
+        (SELECT COUNT(EVENT_ID) count_eventId, TARGET_ID,TOPIC_ID FROM account_upvoite WHERE EVENT_ID = #{1} GROUP BY TARGET_ID,TOPIC_ID ORDER BY count_eventId DESC) t,
+        (SELECT (@row_num :=0) ) x,
+        (SELECT @prev_value := '') y
+        ORDER BY RANK) t1 WHERE t1.TARGET_ID = #{0};
+    </select>
+
+    <insert id="insertAccountUpvoite" parameterType="accountUpvoite">
+        INSERT INTO ACCOUNT_UPVOITE(<include refid="table_columns" />)
+        VALUES
+        (<include refid="entity_properties" />)
+    </insert>
+
+</mapper>
